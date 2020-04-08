@@ -1,5 +1,4 @@
-# saveとsave!、createとcreate!、updateとupdate!、destroyとdestroy!の違いは、
-「処理が失敗した時の挙動の違い」にある。
+# saveとsave!、createとcreate!、updateとupdate!、destroyとdestroy!の違いは、「処理が失敗した時の挙動の違い」にある。
 
 - # 失敗時の挙動
  - `save`は、falseを返す。
