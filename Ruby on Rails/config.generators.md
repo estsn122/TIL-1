@@ -1,4 +1,4 @@
-## `config/application.rb`内の設定によって、generate コマンドで生成されるファイルに制限をかける。
+## config/application.rb内の設定によって、generate コマンドで生成されるファイルに制限をかける。
 
 プロジェクトごとに設定を変えたり、自分好みのカスタマイズができる。
 
