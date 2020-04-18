@@ -1,3 +1,6 @@
+- Gemのインストール
+
+- carriewaveのuploaderを生成
 ```
 rails g uploader image
 ```
@@ -53,13 +56,13 @@ end
 
 ```
 
-- DBテーブルへ画像保存用のカラムを追加
+- DBへ画像保存用のカラムを追加
 ```
 rails g migration add_board_image_to_boards board_image:string
 rails db:migrate
 ```
 
-- モデルの紐付け
+- モデルへの紐付け
 - `mount_uploader :carrierwave用に作ったカラム名, carrierwaveの設定ファイルのクラス名`
 
 ```ruby
@@ -75,9 +78,17 @@ class Board < ApplicationRecord
 end
 ```
 
+- コントローラー
+```ruby
+(app/controllers/boards_controller.rb)
+def board_params
+  params.require(:board).permit(:title, :body, :board_image, :board_image_cache)
+end
+```
+
 - 画像ファイルのアップロードとプレビュー
 
-```ruby
+```erb
 (app/views/boards/_form.html.erb)
 <%= form_with model: board, local: true do |f| %>
      .
