@@ -252,3 +252,157 @@ def not_authenticated
   redirect_to root_path
 end
 ```
+
+
+# パスワードリセット
+
+## パスワードリセット用のサブモジュールreset_passwordをインストール
+- `rails g sorcery:install reset_password --only-submodules`を実行し、続いて`bundle exec rails db:migrate`を実行。
+
+```terminal
+$ rails g sorcery:install reset_password --only-submodules
+Running via Spring preloader in process 99290
+        gsub  config/initializers/sorcery.rb
+      insert  app/models/user.rb
+      create  db/migrate/20200419075054_sorcery_reset_password.rb
+```     
+      
+```ruby
+(db/migrate/2020○○○○○○_sorcery_reset_password.rb)
+class SorceryResetPassword < ActiveRecord::Migration[5.2]
+  def change
+    add_column :users, :reset_password_token, :string, default: nil
+    add_column :users, :reset_password_token_expires_at, :datetime, default: nil
+    add_column :users, :reset_password_email_sent_at, :datetime, default: nil
+    add_column :users, :access_count_to_reset_password_page, :integer, default: 0
+
+    add_index :users, :reset_password_token
+  end
+end
+```
+      
+```ruby
+(schema.rb)
+create_table "users", force: :cascade do |t|
+        .
+        .
+    t.string "reset_password_token"
+    t.datetime "reset_password_token_expires_at"
+    t.datetime "reset_password_email_sent_at"
+    t.integer "access_count_to_reset_password_page", default: 0
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token"
+   　　 .
+    　　.
+end
+```
+
+## パスワードリセットメール用のMailerを作成
+- `rails g mailer UserMailer reset_password_email`を実行
+
+```ruby
+$ rails g mailer UserMailer reset_password_email
+Running via Spring preloader in process 99411
+      create  app/mailers/user_mailer.rb
+      invoke  erb
+      create    app/views/user_mailer
+      create    app/views/user_mailer/reset_password_email.text.erb
+      create    app/views/user_mailer/reset_password_email.html.erb
+```
+
+- sorceryの定義ファイルで、当該サブモジュールを使用することが自動記述された。
+```ruby
+(config/initializers/sorcery.rb)
+Rails.application.config.sorcery.submodules = [:reset_password]
+```
+
+- メーラーを編集し、アクションに'user'パラメータを追加する。sorceryはそれを新しいユーザーにパラメータとして送るからです。
+ - メール内に表示させる情報やメールの送信先を設定。
+```
+# app/mailers/user_mailer.rb
+def reset_password_email(user)
+...
+```
+
+- パスワードリセットに使用するActionMailerとして、UserMailerを指定。
+```ruby
+# config/initializers/sorcery.rb
+Rails.application.config.sorcery.submodules = [:reset_password, blabla, blablu, ...]
+
+Rails.application.config.sorcery.configure do |config|
+  config.user_config do |user|
+    user.reset_password_mailer = UserMailer
+  end
+end
+```
+
+- コントローラ#アクションを`rails g controller PasswordResets create edit update`で追加。
+
+```ruby
+(app/controllers/password_resets_controller.rb)
+class PasswordResetsController < ApplicationController
+  skip_before_action :require_login
+
+  # パスワードリセットを要求
+  # ユーザーがパスワードのリセットフォームにemailを入力し、送信したときに実行
+  def create
+    @email = User.find_by(params[:email])
+    # パスワードをリセットする方法を記載したメールをユーザーに送信する（ランダムトークン付きのURL）
+    @user.deliver_reset_password_instructions! if @user
+    # フォームに入力したemailがアプリ内に存在するか否かを問わず、成功メッセージを表示させる
+    # これは、悪意ある攻撃者がDB内にそのemailが存在するかどうか分からなくするために行う。
+    redirect_to root_path, success: t('dafaults.message.sent_password_reset_email')
+  end
+  
+  # パスワードリセットフォーム
+  def edit
+    # postされてきた値を取得
+    @token = params[:id]
+    # トークンからユーザを検索し, 有効期限のチェックも行います
+    # トークンが見つかり、有効であればそのユーザーオブジェクトを@userに格納
+    @user = User.load_from_reset_password_token(params[:id])
+
+    # @userがnilまたは空でないかをチェック
+    if @user.blank?
+      not_authenticated
+      return
+    end
+  end
+
+  # ユーザーがパスワードのリセットフォームを送信したときに実行
+  def update
+    @token = params[:id]
+    @user = User.load_from_reset_password_token(params[:id])
+
+    if @user.blank?
+      not_authenticated
+      return
+    end
+
+    # password_confirmation属性の有効性を確認
+    @user.password_confirmation = params[:user][:password_confirmation]
+    # パスワードリセットで使用したトークンを削除し、パスワードを更新する
+    if @user.change_password(params[:user][:password])
+      redirect_to login_path, success: t('dafaults.message.password_updated')
+    else
+      flash.now[:danger] = t('dafaults.message.password_not_updated')
+      render :edit
+    end
+  end
+end
+```
+
+
+
+
+```
+module ClassMethods
+
+def load_from_reset_password_token(token, &block)
+  load_from_token(
+    token,
+    @sorcery_config.reset_password_token_attribute_name,
+    @sorcery_config.reset_password_token_expires_at_attribute_name,
+    &block
+  )
+end
+```
