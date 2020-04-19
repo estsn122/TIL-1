@@ -1,6 +1,6 @@
-- Gemのインストール
+### - Gemのインストール
 
-- carriewaveのuploaderを生成
+### - carrierwaveのuploaderを生成
 ```
 rails g uploader image
 ```
@@ -25,6 +25,7 @@ class ImageUploader < CarrierWave::Uploader::Base
   end
 
   # Provide a default URL as a default if there hasn't been a file uploaded:
+  # 画像が設定されているかどうかの判定をview側で書かずに済む。
   def default_url(*_args)
     'board_placeholder.png'
   end
@@ -56,14 +57,14 @@ end
 
 ```
 
-- DBへ画像保存用のカラムを追加
+### - DBへ画像保存用のカラムを追加
 ```
 rails g migration add_board_image_to_boards board_image:string
 rails db:migrate
 ```
 
-- モデルへの紐付け
-- `mount_uploader :carrierwave用に作ったカラム名, carrierwaveの設定ファイルのクラス名`
+### - モデルへの紐付け
+  - `mount_uploader :carrierwave用に作ったカラム名, carrierwaveの設定ファイルのクラス名`
 
 ```ruby
 (app/models/board.rb)
@@ -78,7 +79,7 @@ class Board < ApplicationRecord
 end
 ```
 
-- コントローラー
+### - コントローラー
 ```ruby
 (app/controllers/boards_controller.rb)
 def board_params
@@ -86,7 +87,9 @@ def board_params
 end
 ```
 
-- 画像ファイルのアップロードとプレビュー
+### - 画像ファイルのアップロードとプレビュー
+ - バリデーションエラーが発生しても画像ファイルをキャッシュとして記憶させる。
+   - `hidden_field`に`画像保存用のカラム名_cache`を付与。
 
 ```erb
 (app/views/boards/_form.html.erb)
@@ -109,9 +112,38 @@ end
 <% end %>
 ```
 
-- アップロードした画像の表示
+```javascript
+(app/assets/javascripts/preview.js)
+function previewFileWithId(id) {
+  const target = this.event.target;
+  const file = target.files[0];
+  const reader  = new FileReader();
+  reader.onloadend = function () {
+      preview.src = reader.result;
+  }
+  if (file) {
+      reader.readAsDataURL(file);
+  } else {
+      preview.src = '';
+  }
+}
+```
+
+### - アップロードした画像の表示
 
 ``` ruby
 (app/views/boards/_board.html.erb)
 <%= image_tag board.board_image_url, class: 'card-img-top', size: '300x200' %>
+```
+
+### - プロフィール画像を全ページで表示させたい場合は、`sorcery`を使っているなら、`image_tag`で`current_user.カラム名_url`をURLに指定するだけ。
+
+### - ローカル環境でアップロードした画像はアップロードしない様に.gitignoreで指定する
+  - .gitignoreファイル(git initで生成されている)で、バージョン管理の対象外にする。
+    - インターネット上に公開したく無い、リモートリポジトリ に反映したくないファイルやディレクトリを指定する。
+  - すでにファイルをコミットしてからgitignoreを追記しても、ファイルが上がったままになるため、コミット後は`git rm --cached ファイル名`コマンドでgitの管理対象外に設定する。
+
+```
+(.gitignore)
+/public/uploads
 ```
