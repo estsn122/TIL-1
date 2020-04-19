@@ -342,22 +342,26 @@ end
 class PasswordResetsController < ApplicationController
   skip_before_action :require_login
 
-  # パスワードリセットを要求
+  def new; end
+
+  # パスワードリセットをリクエストする
   # ユーザーがパスワードのリセットフォームにemailを入力し、送信したときに実行
   def create
-    @email = User.find_by(params[:email])
-    # パスワードをリセットする方法を記載したメールをユーザーに送信する（ランダムトークン付きのURL）
+    # form_withで送られてきたemailをparamsで受け取る
+    @user = User.find_by(params[:email])
+    # DBからデータを受け取れていれば、パスワードリセットの方法を記載したメールをユーザーに送信する（ランダムトークン付きのURL/有効期限付き）
     @user.deliver_reset_password_instructions! if @user
     # フォームに入力したemailがアプリ内に存在するか否かを問わず、成功メッセージを表示させる
     # これは、悪意ある攻撃者がDB内にそのemailが存在するかどうか分からなくするために行う。
     redirect_to root_path, success: t('dafaults.message.sent_password_reset_email')
   end
   
-  # パスワードリセットフォーム
+  # パスワードリセットフォームへ
   def edit
     # postされてきた値を取得
     @token = params[:id]
-    # トークンからユーザを検索し, 有効期限のチェックも行います
+    # load_from_reset_password_tokenの簡単な説明
+    # リクエストで送信されてきたトークンを使って、ユーザーの検索を行い, 有効期限のチェックも行う。
     # トークンが見つかり、有効であればそのユーザーオブジェクトを@userに格納
     @user = User.load_from_reset_password_token(params[:id])
 
@@ -380,7 +384,7 @@ class PasswordResetsController < ApplicationController
 
     # password_confirmation属性の有効性を確認
     @user.password_confirmation = params[:user][:password_confirmation]
-    # パスワードリセットで使用したトークンを削除し、パスワードを更新する
+    # change_passwordメソッドで、パスワードリセットに使用したトークンを削除し、パスワードを更新する
     if @user.change_password(params[:user][:password])
       redirect_to login_path, success: t('dafaults.message.password_updated')
     else
