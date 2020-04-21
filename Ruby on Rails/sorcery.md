@@ -1,6 +1,9 @@
 [sorcery公式](https://github.com/Sorcery/sorcery)を参照にした。  
 [sorceryメソッド](https://github.com/Sorcery/sorcery/blob/7c5fee441e03779ee2888ecef317440cd10a17e7/lib/sorcery/controller.rb#L76-L78)
 
+[ActionMailer::Base < AbstractController::Base](https://api.rubyonrails.org/classes/ActionMailer/Base.html)
+[Action Mailer の基礎/Railsガイド](https://railsguides.jp/action_mailer_basics.html)
+
 ## sorceryのインストール
 ```
 gem 'sorcery'
@@ -257,7 +260,8 @@ end
 # パスワードリセット
 
 ## パスワードリセット用のサブモジュールreset_passwordをインストール
-- `rails g sorcery:install reset_password --only-submodules`を実行し、続いて`bundle exec rails db:migrate`を実行。
+- `rails g sorcery:install reset_password --only-submodules`を実行し、  
+続いて`bundle exec rails db:migrate`を実行。
 
 ```terminal
 $ rails g sorcery:install reset_password --only-submodules
@@ -296,6 +300,16 @@ create_table "users", force: :cascade do |t|
 end
 ```
 
+- password_reset_token にユニーク制約を付与しておく
+  - パスワードを変更した際にreset_password_tokenがnilになるのでallow_nilが必要。
+  - 同じ理屈でユーザーの新規作成もできなくなる
+  
+```ruby
+(user.rb)
+validates :reset_password_token, uniqueness: true, allow_nil: true
+```
+
+
 ## パスワードリセットメール用のMailerを作成
 - `rails g mailer UserMailer reset_password_email`を実行
 
@@ -315,17 +329,10 @@ Running via Spring preloader in process 99411
 Rails.application.config.sorcery.submodules = [:reset_password]
 ```
 
-- メーラーを編集し、アクションに'user'パラメータを追加する。sorceryはそれを新しいユーザーにパラメータとして送るからです。
- - メール内に表示させる情報やメールの送信先を設定。
-```
-# app/mailers/user_mailer.rb
-def reset_password_email(user)
-...
-```
-
 - パスワードリセットに使用するActionMailerとして、UserMailerを指定。
+  - app/mailers/user_mailer.rbが呼び出される。
 ```ruby
-# config/initializers/sorcery.rb
+(config/initializers/sorcery.rb)
 Rails.application.config.sorcery.submodules = [:reset_password, blabla, blablu, ...]
 
 Rails.application.config.sorcery.configure do |config|
@@ -334,6 +341,55 @@ Rails.application.config.sorcery.configure do |config|
   end
 end
 ```
+
+- メーラーを編集し、アクションに'user'パラメータを追加する。sorceryはそれを新しいユーザーにパラメータとして送るからです。
+ - メール内に表示させる情報やメールの送信先を設定。
+ - `reset_password_email(user)`がアクションと似た動きをし、`user_mailer/reset_password_email.html.erb`メイラービューを呼び出す。
+```ruby
+# app/mailers/user_mailer.rb
+class UserMailer < ApplicationMailer
+
+  # メイラーはコントローラと似通っている
+  # パスワードリセット用のメールを送信できるメソッド
+  # reset_password_emailメソッドなので、reset_password_email.〇〇のビューがメールのフォーマットになる?
+  # コントローラの場合と同様、メイラーのメソッド内で定義されたインスタンス変数はビューで使える。
+  def reset_password_email(user)
+    @user = User.find(user.id)
+    @url  = edit_password_reset_url(@user.reset_password_token)
+    mail(to: user.email,
+         subject: 'パスワードリセット')
+  end
+end
+```
+
+- メイラービューの設定
+ ```ruby
+ (app/views/user_mailer/reset_password_email.html.erb)
+ <h1><%= @user.decorate.full_name %>様</h1> 
+<p>=====================================</p>
+
+<p>パスワード再発行のご依頼を受け付けました。</p><br>
+
+<p>こちらのリンクからパスワードの再発行を行ってください。</p>
+
+<p><a href="<%= @url %>"><%= @url %></a></p>
+<!--  <%= link_to @url, @url %>  -->
+```
+
+```ruby
+(app/views/user_mailer/reset_password_email.text.erb)
+<%= @user.decorate.full_name %>様
+===========================================
+
+パスワード再発行のご依頼を受け付けました。
+
+こちらのリンクからパスワードの再発行を行ってください。
+<%= @url %>
+<!-- <%= link_to @url, @url %> -->
+```
+
+
+
 
 - コントローラ#アクションを`rails g controller PasswordResets create edit update`で追加。
 
@@ -348,14 +404,15 @@ class PasswordResetsController < ApplicationController
   # ユーザーがパスワードのリセットフォームにemailを入力し、送信したときに実行
   def create
     # form_withで送られてきたemailをparamsで受け取る
-    @user = User.find_by(params[:email])
+    @user = User.find_by(email: params[:email])
     # DBからデータを受け取れていれば、パスワードリセットの方法を記載したメールをユーザーに送信する（ランダムトークン付きのURL/有効期限付き）
-    @user.deliver_reset_password_instructions! if @user
+    # @user.deliver_reset_password_instructions! if @user
+    @user&.deliver_reset_password_instructions!
     # フォームに入力したemailがアプリ内に存在するか否かを問わず、成功メッセージを表示させる
     # これは、悪意ある攻撃者がDB内にそのemailが存在するかどうか分からなくするために行う。
-    redirect_to root_path, success: t('dafaults.message.sent_password_reset_email')
+    redirect_to login_path, success: t('.success')
   end
-  
+
   # パスワードリセットフォームへ
   def edit
     # postされてきた値を取得
@@ -364,49 +421,72 @@ class PasswordResetsController < ApplicationController
     # リクエストで送信されてきたトークンを使って、ユーザーの検索を行い, 有効期限のチェックも行う。
     # トークンが見つかり、有効であればそのユーザーオブジェクトを@userに格納
     @user = User.load_from_reset_password_token(params[:id])
-
     # @userがnilまたは空でないかをチェック
-    if @user.blank?
-      not_authenticated
-      return
-    end
+    return not_authenticated if @user.blank?
   end
 
   # ユーザーがパスワードのリセットフォームを送信したときに実行
   def update
     @token = params[:id]
-    @user = User.load_from_reset_password_token(params[:id])
-
-    if @user.blank?
-      not_authenticated
-      return
-    end
-
+    @user = User.load_from_reset_password_token(@token)
+    return not_authenticated if @user.blank?
     # password_confirmation属性の有効性を確認
     @user.password_confirmation = params[:user][:password_confirmation]
     # change_passwordメソッドで、パスワードリセットに使用したトークンを削除し、パスワードを更新する
     if @user.change_password(params[:user][:password])
-      redirect_to login_path, success: t('dafaults.message.password_updated')
+      redirect_to login_path, success: t('.success')
     else
-      flash.now[:danger] = t('dafaults.message.password_not_updated')
+      flash.now[:danger] = t('.fail')
       render :edit
     end
   end
 end
 ```
 
-
-
-
+- パスワードリセットを申請するフォーム 
+ - 送信ボタンを押すと、createアクションへ
+```ruby
+(app/views/password_resets/new.html.erb)
+<% content_for(:title, t('.title')) %>
+<h1><%= t('.title') %></h1>
+<%= form_with url: password_resets_path, local: true do |f| %>
+  <div class="field">
+    <%= f.label :email, t(User.human_attribute_name(:email)) %>
+    <%= f.email_field :email %>
+    <%= f.submit t('.submit'), class:'btn btn-primary' %>
+  </div>
+<% end %>
 ```
-module ClassMethods
 
-def load_from_reset_password_token(token, &block)
-  load_from_token(
-    token,
-    @sorcery_config.reset_password_token_attribute_name,
-    @sorcery_config.reset_password_token_expires_at_attribute_name,
-    &block
-  )
-end
+- パスワードリセット用のフォーム
+```ruby
+(app/views/password_resets/edit.html.erb)
+<% content_for(:title, t('.title')) %>
+<div class="container">
+  <div class="row">
+    <div class="col col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+      <h1><%= t('.title') %></h1>
+      <%= form_with model: @user, url: password_reset_path(@token), local: true do |f| %>
+        <%= render 'shared/error_messages', object: f.object %>
+        <div class="form-group">
+          <%= f.label :email %><br>
+          <%= @user.email %>
+        </div>
+        <div class="form-group">
+          <%= f.label :password %><br>
+          <%= f.password_field :password, class: 'form-control' %>
+        </div>
+        <div class="form-group">
+          <%= f.label :password_confirmation %><br>
+          <%= f.password_field :password_confirmation, class: 'form-control' %>
+        </div>
+        <div class="actions">
+          <p class="text-center">
+            <%= f.submit class:'btn btn-primary' %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
 ```
