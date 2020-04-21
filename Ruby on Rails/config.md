@@ -1,7 +1,15 @@
 #### 参照
+[config readme](https://github.com/rubyconfig/config)
+
 [Railsガイド/Railsアプリケーションを設定する](https://railsguides.jp/configuring.html)
+
 [Railsドキュメント/設定ファイル](https://railsdoc.com/config)
+
 [Railsの設定情報](https://www.buildinsider.net/web/rubyonrails4/0205)
+
+[プログラマーのための YAML 入門 (初級編)](https://magazine.rubyist.net/articles/0009/0009-YAML.html)
+
+[Railsで定数を環境ごとに管理するrails_config（現 config）|Qiita|](https://qiita.com/yumiyon/items/32c6afb5e2e5b7ff369e)
 
 # Railsアプリケーションの設定
 - Railsアプリケーションの動作を調整する方法
