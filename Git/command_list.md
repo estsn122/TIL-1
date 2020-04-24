@@ -195,6 +195,32 @@
 - git rebase -i コミット名
 - git rebase -i HEAD~3    
    - 直前３つのコミットをやり直す
+   
+   
+## Gitでよく使うコマンド
+git log -p
+git branch
+git checkout -b aaa
+git status
+git stash
+git stash -u
+git stash apply
+git stash pop
+git reset -soft HEAD^
+git reset -soft HEAD^^
+git reset -soft HEAD2^
+git reset -hard HEAD2^（危険）
+git add file_name
+git add app/controller/*
+git commit -m "Fix: xxx部分を修正"
+git push
+git push xxxxx
+git push origin HEAD
+git fetch
+git pull
+git merge
+git merge --abort
+
 - 
 - 
 - 
