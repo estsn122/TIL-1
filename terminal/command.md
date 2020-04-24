@@ -1,0 +1,18 @@
+- terminal key-bind
+- tab —> 入力補完
+- ctrl a —> 先頭に移動
+- ctrl e —> 末尾に移動
+- ctrl f —> 一文字次に移動
+- ctrl b —> 一文字前に移動
+- esc f —> 一単語次に移動
+- esc b —> 一単語前に移動
+（escのコマンドを連打するときはescからも指を離してください）
+- ctrl d —> カーソルの文字を削除
+- ctrl h —> カーソルの1つ前の文字を削除（BackSpaceと同じ
+- ctrl w —> カーソルの1つ前の単語を削除
+- ctrl k —> カーソル以降の文字を全て削除（bash
+- ctrl u —> カーソル以前の文字を全て削除（bash
+- ctrl p —> 前回実行したコマンド履歴を表示
+- ctrl n —> 以降に実行したコマンド履歴を表示
+- ctrl r —> 実行コマンドの履歴から検索（reverse-search
+- ctrl l —> 現在表示されているコマンドを残して画面をクリア
