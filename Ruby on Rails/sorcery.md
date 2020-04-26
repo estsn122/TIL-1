@@ -58,9 +58,8 @@ rails g sorcery:install
 ```
 
 
-
-- 暗号化されたパスワード(`crypted_password`)やソルト(`salt`)をユーザーに編集/閲覧させたくないため、
-app/views/users/のすべてのビューで使用しないこと。
+- 暗号化されたパスワード(`crypted_password`)やソルト(`salt`)というカラムををユーザーに編集/閲覧させたくないため、
+app/views/users/のあらゆるビューで使用してはいけない。
 
 - 代わりにパスワードの「仮想的な」フィールドをビューに追加して、データベースに暗号化される前のパスワードを保持する。
   
@@ -76,7 +75,8 @@ app/views/users/のすべてのビューで使用しないこと。
 ```
 
 - Userモデルに以下のように記述することで、Userクラスがsorceryを使えるようになる。
-  - `validates :password, confirmation: true`で、仮想の属性が追加される。
+  - `validates :password, confirmation: true`で、passwordというモデルのDBに存在しない仮想的な属性(virtual attributes)が追加される。
+     - ユーザーが入力した暗号化されていない平文のpasswordはDBに保存したくないため、passwordカラムは作らないほうが良い。
   - `if: -> { new_record? || changes[:crypted_password] }`で、登録したユーザーがパスワード以外のプロフィール項目を更新したい場合に、パスワードの入力を省略させることができる。
 
 ```ruby
