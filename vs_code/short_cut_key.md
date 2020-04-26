@@ -1,0 +1,3 @@
+- 同じ文字を複数選択
+ - １つずつ追加  Command ＋ D 
+ - 一括選択 Shift ＋ Command ＋ L
