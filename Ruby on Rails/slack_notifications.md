@@ -29,7 +29,8 @@ gem 'exception_notification'
 trueに設定すると、どのような種類のエラーが発生しても、詳細なデバッグ情報がHTTPレスポンスに出力される。
 developmentとtest環境ではtrue、production環境ではfalseに設定されている。
 
-```ruby:config/environments/development.rb
+```ruby
+config/environments/development.rb
 # Show full error reports.
  # falseにするだけでdevelopment環境でエラーページの動作を確認できる
  config.consider_all_requests_local = false
@@ -41,7 +42,7 @@ developmentとtest環境ではtrue、production環境ではfalseに設定され�
 `rails g exception_notification:install`
 
 ```terminal
-config/initializers/exception_notification.rb
+(config/initializers/exception_notification.rb)
 
 ExceptionNotification.configure do |config|
  config.add_notifier :slack, {
@@ -57,7 +58,8 @@ end
  
 - settingsファイルでチャンネル名設定
 
-```ruby:config/settings/development.yml
+```ruby
+(config/settings/development.yml)
 slack:
  exception_notification_channel: '#基礎編通知'
 ```
@@ -88,7 +90,8 @@ slack:
 
 - 上記で入力した情報が、`config/credentials.yml.enc`に、暗号化された状態で保存される(リモート上で管理したくない秘匿情報)
 
-```ruby:config/credentials.yml.enc
+```ruby:
+(config/credentials.yml.enc)
 TxvKX43N1GmClAAkxERwRumpqgrADiHG6qSY3udH7LLqm0/9kUV4ORBUkb+HIPQ+YL5UdMNaECxR2g1+2rhiHTQvz+7Dc0A25ZJqaxj0se2/cT7cAY1ueYyPloXbhSZFTf+vG4+2k+iLX9ga5EyDmmzHHgkZaoEZ3UvXSShlEpm4iOT2uNxNHKEen1QfZKt4JzzpYpqHtgeKSSN
 ```
 
@@ -110,7 +113,8 @@ If you lose the key, no one, including you, can access anything encrypted with i
 
 - master_keyはバージョン管理対象外となっている
 
-```.gitignore
+```
+(.gitignore)
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 ```
@@ -120,7 +124,8 @@ If you lose the key, no one, including you, can access anything encrypted with i
 - 404エラー時は、404エラー用のテンプレートを表示させる。
 - 500エラー時は例外(エラー)クラス、エラーメッセージ 、バックトレースをログに出力させ、500エラー用のテンプレートを表示させる。
 
-```ruby:app/controllers/application_controller.rb
+```ruby
+(app/controllers/application_controller.rb)
 
 rescue_from StandardError, with: :error500
  rescue_from ActiveRecord::RecordNotFound, with: :error404
@@ -142,7 +147,9 @@ def error500(error)
 - エラーログ
 
 - 404エラー発生時のログ
-```log/development.log
+
+```
+(log/development.log)
 Started GET "/boards/599" for ::1 at 2020-04-29 11:58:10 +0900
 Processing by BoardsController#show as HTML
  Parameters: {"id"=>"599"}
@@ -156,7 +163,9 @@ Completed 404 Not Found in 61ms (Views: 16.7ms | ActiveRecord: 2.7ms)
 ```
 
 - 500エラー発生時のログ
-```log/development.log
+
+```
+(log/development.log)
 Started GET "/login" for ::1 at 2020-04-29 11:59:39 +0900
 Processing by UserSessionsController#new as HTML
 エラークラス: NameError
