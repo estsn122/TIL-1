@@ -41,19 +41,30 @@ config/environments/development.rb
 
 `rails g exception_notification:install`
 
-```terminal
+```ruby
 (config/initializers/exception_notification.rb)
 
-ExceptionNotification.configure do |config|
- config.add_notifier :slack, {
-     webhook_url: Rails.application.credentials.dig(:slack, :webhook_url),
-     channel: Settings.slack.exception_notification_channel
- }
-end
+if Rails.env.production?
+  require 'exception_notification/rails'
 
-   config.add_notifier :slack,
-                       webhook_url: Rails.application.credentials.slack[:webhook_url],
-                       channel: チャンネル名
+  ExceptionNotification.configure do |config|
+    config.add_notifier :slack, {
+      # credentialsファイルをを利用して設定
+      webhook_url: Rails.application.credentials.dig(:slack, :webhook_url),
+      # webhook_url: Rails.application.credentials.slack[:webhook_url]
+      # settings.ymlを利用して設定
+      channel: Settings.slack.exception_notification_channel
+    }
+  end
+  
+end
+```
+
+- credentialの中身
+
+```
+slack:
+  webhook_url: https://hooks.slack.com/services/......
 ```
  
 - settingsファイルでチャンネル名設定
