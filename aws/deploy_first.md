@@ -1,4 +1,3 @@
-
 ルートユーザー
 IAMユーザー
 
@@ -11,17 +10,12 @@ Amazon VPC
 EC2インスタンスというサービスでサーバーを作るz
 
 インスタンスとは仮想的なサーバー
-
-
-
-
 RDS
 
 マスターユーザー名: ryota
-マスターパスワード: 59~ryorta
+マスターパスワード: 5...rta
 
 - RDSの作成で、なぜサブネットにap-northeast-1aを選択するのか？(1cではなく)
-
 
 EC2インスタンス
 
@@ -253,7 +247,9 @@ ruby 2.6.4p104 (2019-08-28 revision 67798) [x86_64-linux]
 [ryota@ip-10-0-11-136 ~]$ cd ~/.rbenv/bin/rbenv
 -bash: cd: /home/ryota/.rbenv/bin/rbenv: Not a directory
 ```
+
 タイムアウトした
+
 ```
 [ryota@ip-10-0-11-136 ~]$ OPpacket_write_wait: Connection to 52.192.237.51 port 22: Broken pipe
 
@@ -287,11 +283,12 @@ ruby 2.6.4p104 (2019-08-28 revision 67798) [x86_64-linux]
 ```
 
 これわからん
+
 ```
 ※ which rbenvを実行して、表示される相対パスからrbenvのインストール先に移動し、
   pwdコマンドで絶対パスを確認すると個別のユーザー毎のディレクトリにインストールされていることが分かります。
 ```
-代わりにrbenv versionsで分かった気がするが
+→代わりにrbenv versionsで分かった気がするが
 ```
 [ryota@ip-10-0-11-136 ~]$ which rbenv
 ~/.rbenv/bin/rbenv
@@ -358,6 +355,11 @@ account  adm  cache  db  empty  games  gopher  kerberos  lib  local  lock  log  
 [ryota@ip-10-0-11-136 www]$ ls
 [ryota@ip-10-0-11-136 www]$ ls -a
 .  ..
+
+ーーー
+
+# Githubからアプリをcloneする
+
 [ryota@ip-10-0-11-136 www]$ git clone https://github.com/ryota1116/runteq_advanced.git
 Cloning into 'runteq_advanced'...
 Username for 'https://github.com': ryota1116
@@ -404,6 +406,8 @@ Ignoring config/master.key so it won't end up in Git history:
       append  .gitignore
 
 New credentials encrypted and saved.
+
+
 ~/workspace/runteq/332_ryota1116_runteq_learning_advanced
 $ cd config                                                                                                                                                                            【 master 】【 master 】
 ~/.../332_ryota1116_runteq_learning_advanced/config
@@ -413,10 +417,18 @@ boot.rb				database.yml			environments			rails_best_practices.yml	settings.yml
 breadcrumbs.rb			database.yml.default		initializers			resque_schedule.yml		spring.rb
 cable.yml			deploy				locales				routes.rb			storage.yml
 credentials.yml.enc		deploy.rb			master.key			schedule.rb			webpack
-EC2の中にmaster.key作成してローカルの値をコピペ
-[ryota@ip-10-0-11-136 runteq_advanced]$ ls
-app              bin      config       config.ru  entity_relation  Gemfile.lock  log           package-lock.json  public    README.md   spec
-babel.config.js  Capfile  config.reek  db         Gemfile          lib           package.json  postcss.config.js  Rakefile  sideci.yml  yarn.lock
+
+
+
+
+
+# EC2の中にmaster.key作成してローカルの値をコピペ
+# credentials.yml.encファイル(暗号化されているため、直接編集はできない。rails credentials:editで編集できる)はあるけど、master.keyは存在しない
+[ryota@ip-10-0-11-136 aws_study]$ cd config/
+[ryota@ip-10-0-11-136 config]$ ls
+application.rb  boot.rb  cable.yml  credentials.yml.enc  database.yml  environment.rb  environments  initializers  locales  puma.rb  routes.rb  spring.rb  storage.yml
+
+# vimでmaster.keyを作成して、ローカルのファイルの中身をコピーする
 [ryota@ip-10-0-11-136 runteq_advanced]$ vim master.key
 [ryota@ip-10-0-11-136 runteq_advanced]$ ls
 app              bin      config       config.ru  entity_relation  Gemfile.lock  log         package.json       postcss.config.js  Rakefile   sideci.yml  yarn.lock
@@ -432,8 +444,8 @@ default: &default
   encoding: utf8mb4
   charset: utf8mb4
   collation: utf8mb4_general_ci
-  username: ryota
-  password: 59272744ryota
+  username: ryota  # マスターユーザー名
+  password: 59〜a　# マスターパスワード
   host: database-1.c24h1oi6hhez.ap-northeast-1.rds.amazonaws.com  # RDSのエンドポイント
   pool: 5
   timeout: 5000
@@ -448,6 +460,8 @@ default: &default
 ```
 ```
 2.6.5がなかったからインストール
+
+# bundle installで本番環境に必要なgemを取得
 [ryota@ip-10-0-11-136 runteq_advanced]$ bundle install
 rbenv: version `2.6.5' is not installed (set by /var/www/runteq_advanced/.ruby-version)
 
@@ -478,15 +492,16 @@ To install the missing version, run `gem install bundler:2.0.2`
 ※ここでエラーとなりファイルの編集やgemの追加が必要になった場合は、EC2上で作業せずにローカルで作業してpushしたものをEC2上でpullしてください。
 （リポジトリを更新しないと別環境でデプロイした際にエラーが再発するため）
 この通りしたらいいのか
-```
 
-```
-なんかエラー
+
+
+# なんかエラー
+# ここ謎すぎる
 $ bundle update --bundler
 You must use Bundler 2 or greater with this lockfile.
-```
 
-```
+
+
 EC2上のbundlerのバージョンが2じゃないからエラーになってるぽい
 [ryota@ip-10-0-11-136 runteq_advanced]$ gem list bundler
 
@@ -500,9 +515,9 @@ $ gem list bundler                                                              
 
 bundler (2.1.4, default: 1.17.2)
 capistrano-bundler (1.6.0)
-```
 
-```
+
+bundlerのバージョンを変更
 [ryota@ip-10-0-11-136 runteq_advanced]$ gem install bundler:2.0.2
 Fetching bundler-2.0.2.gem
 Successfully installed bundler-2.0.2
@@ -518,9 +533,8 @@ Done installing documentation for bundler after 3 seconds
 bundler (2.0.2, default: 1.17.2)
 [ryota@ip-10-0-11-136 runteq_advanced]$ bundler -v
 Bundler version 2.0.2
-```
 
-```
+
 [ryota@ip-10-0-11-136 runteq_advanced]$ bundle install
 ...
 .....
@@ -549,10 +563,12 @@ bin/rails:4:in `<main>'
 Tasks: TOP => db:create => db:load_config => environment
 (See full trace by running task with --trace)
 
+
 EC2に再度pullした時に、Git管理外にあるmaster.keyが消えたから、作り直してローカルと同じ値を入れる
 [ryota@ip-10-0-11-136 config]$ vim master.key
 
-[ryota@ip-10-0-11-136 config]$ cd ..
+
+DBのテーブル作成して
 [ryota@ip-10-0-11-136 runteq_advanced]$ rails db:create RAILS_ENV=production
 Created database 'aws-study-runteq-production'
 
@@ -560,8 +576,9 @@ Created database 'aws-study-runteq-production'
 == 20171230001508 CreateActiveStorageTables: migrating ========================
 -- create_table(:active_storage_blobs)
    -> 0.0173s
-```
 
+rails db:seed RAILS_ENV=production
+```
 
 nginx
 
@@ -590,6 +607,7 @@ nginxの設定ファイルを作成する
 ```
 [ryota@ip-10-0-11-136 runteq_advanced]$ cd /etc/nginx/conf.d
 [ryota@ip-10-0-11-136 conf.d]$ sudo vim 332_ryota1116_runteq_learning_advanced.conf
+
 ```
 
 puma
@@ -604,6 +622,7 @@ puma
 
 
 [ryota@ip-10-0-11-136 runteq_advanced]$ bundle exec puma -C config/puma/production.rb -e production -d
+
 [13153] Puma starting in cluster mode...
 [13153] * Version 4.3.1 (ruby 2.6.5-p114), codename: Mysterious Traveller
 [13153] * Min threads: 3, max threads: 3
@@ -632,6 +651,8 @@ Errno::ENOENT: No such file or directory - connect(2) for /var/www/runteq_advanc
 [ryota@ip-10-0-11-136 runteq_advanced]$ cd tmp/
 [ryota@ip-10-0-11-136 tmp]$ mkdir sockets
 
+# もう一回puma起動できるか試した
+
 [ryota@ip-10-0-11-136 runteq_advanced]$ bundle exec puma -C config/puma/production.rb -e production -d
 [13479] Puma starting in cluster mode...
 [13479] * Version 4.3.1 (ruby 2.6.5-p114), codename: Mysterious Traveller
@@ -645,11 +666,40 @@ Errno::ENOENT: No such file or directory - connect(2) for /var/www/runteq_advanc
 [13479] * Daemonizing...
 ```
 
+-dを無しでエラー見つかったり
+```
+[ryota@ip-10-0-11-136 aws_study]$ bundle exec puma -C config/puma/production.rb -e production
+[16728] Puma starting in cluster mode...
+[16728] * Version 3.12.6 (ruby 2.6.4-p104), codename: Llamas in Pajamas
+[16728] * Min threads: 3, max threads: 3
+[16728] * Environment: production
+[16728] * Process workers: 2
+[16728] * Preloading application
+[16728] * Listening on unix:///var/www/aws_study/tmp/sockets/puma.sock
+[16728] ! WARNING: Detected 2 Thread(s) started in app boot:
+[16728] ! #<Thread:0x000000000288f7a0@/home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/concurrent-ruby-1.1.6/lib/concurrent-ruby/concurrent/atomic/ruby_thread_local_var.rb:38 sleep_forever> - /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/concurrent-ruby-1.1.6/lib/concurrent-ruby/concurrent/atomic/ruby_thread_local_var.rb:40:in `pop'
+[16728] ! #<Thread:0x0000000002f34808@/home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/activerecord-5.2.4.3/lib/active_record/connection_adapters/abstract/connection_pool.rb:299 sleep> - /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/activerecord-5.2.4.3/lib/active_record/connection_adapters/abstract/connection_pool.rb:301:in `sleep'
+[16728] Use Ctrl-C to stop
+bundler: failed to load command: puma (/home/ryota/.rbenv/versions/2.6.4/bin/puma)
+Errno::ENOENT: No such file or directory @ rb_sysopen - /var/www/aws_study/tmp/pids/puma.pid
+  /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/puma-3.12.6/lib/puma/launcher.rb:133:in `initialize'
+  /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/puma-3.12.6/lib/puma/launcher.rb:133:in `open'
+  /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/puma-3.12.6/lib/puma/launcher.rb:133:in `write_pid'
+  /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/puma-3.12.6/lib/puma/launcher.rb:106:in `write_state'
+  /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/puma-3.12.6/lib/puma/cluster.rb:460:in `run'
+  /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/puma-3.12.6/lib/puma/launcher.rb:186:in `run'
+  /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/puma-3.12.6/lib/puma/cli.rb:80:in `run'
+  /home/ryota/.rbenv/versions/2.6.4/lib/ruby/gems/2.6.0/gems/puma-3.12.6/bin/puma:10:in `<top (required)>'
+  /home/ryota/.rbenv/versions/2.6.4/bin/puma:23:in `load'
+```
+
+pumaを起動できたらnginxを再起動
 ```
 [ryota@ip-10-0-11-136 runteq_advanced]$ ps -ax | grep nginx
 12602 ?        Ss     0:00 nginx: master process /usr/sbin/nginx
 12603 ?        S      0:00 nginx: worker process
 13523 pts/0    S+     0:00 grep --color=auto nginx
+
 
 [ryota@ip-10-0-11-136 runteq_advanced]$ sudo nginx -s stop
 
@@ -663,3 +713,53 @@ Redirecting to /bin/systemctl start nginx.service
 
 
 
+
+```
+[ryota@ip-10-0-11-136 log]$ vim nginx.error.log
+
+2020/06/13 02:54:08 [error] 16956#0: *9 connect() to unix:///var/www/runteq_advanced/tmp/sockets/puma.sock failed (111: Connection refused) while connecting to upstream, client: 147.192.28.204, server: 52.192.237.51, request: "GET / HTTP/1.1", upstream: "http://unix:///var/www/runteq_advanced/tmp/sockets/puma.sock:/", host: "52.192.237.51"
+```
+
+
+```
+[ryota@ip-10-0-11-136 log]$ ls
+development.log  nginx.access.log  nginx.error.log  production.log
+[ryota@ip-10-0-11-136 log]$ vi production.log
+
+ActionView::Template::Error (The asset "application.css" is not present in the asset pipeline.):
+```
+
+プリコンパイルして、puma再起動したらいけた！
+```
+[ryota@ip-10-0-11-136 aws_study]$ bundle exec rails assets:precompile RAILS_ENV=production
+
+Yarn executable was not detected in the system.
+Download Yarn at https://yarnpkg.com/en/docs/install
+I, [2020-06-16T11:54:10.727759 #18069]  INFO -- : Writing /var/www/aws_study/public/assets/application-a226d6f5a204577a825ee41bf04abd6c23ce14b8b732c2bcf883c148480af0f8.js
+I, [2020-06-16T11:54:10.728728 #18069]  INFO -- : Writing /var/www/aws_study/public/assets/application-a226d6f5a204577a825ee41bf04abd6c23ce14b8b732c2bcf883c148480af0f8.js.gz
+I, [2020-06-16T11:54:10.767400 #18069]  INFO -- : Writing /var/www/aws_study/public/assets/application-35729bfbaf9967f119234595ed222f7ab14859f304ab0acc5451afb387f637fa.css
+I, [2020-06-16T11:54:10.767818 #18069]  INFO -- : Writing /var/www/aws_study/public/assets/application-35729bfbaf9967f119234595ed222f7ab14859f304ab0acc5451afb387f637fa.css.gz
+```
+
+これ知らんかった
+productionモードでは、Railsはプリコンパイルされたファイルをpublic/assetsに置きます。プリコンパイルされたファイルは、Webサーバーによって静的なアセットとして扱われます。app/assetsに置かれたファイルがそのままの形でproduction環境で使用されることは決してありません（Railsガイドより）
+```
+[ryota@ip-10-0-11-136 aws_study]$ vi log/production.log
+[ryota@ip-10-0-11-136 aws_study]$ cd public/assets/
+[ryota@ip-10-0-11-136 assets]$ ls
+application-35729bfbaf9967f119234595ed222f7ab14859f304ab0acc5451afb387f637fa.css     application-39b12685fbc96987f7b799a6f65a79ecaeb1b1ca2e8ba51d0c46c72fc1d50baf.js
+application-35729bfbaf9967f119234595ed222f7ab14859f304ab0acc5451afb387f637fa.css.gz  application-39b12685fbc96987f7b799a6f65a79ecaeb1b1ca2e8ba51d0c46c72fc1d50baf.js.gz
+application-36a40fbff7157c31ec87d8e0a7dd7c58234c18add8732573bea3b05ad0a460ae.css     application-a226d6f5a204577a825ee41bf04abd6c23ce14b8b732c2bcf883c148480af0f8.js
+application-36a40fbff7157c31ec87d8e0a7dd7c58234c18add8732573bea3b05ad0a460ae.css.gz  application-a226d6f5a204577a825ee41bf04abd6c23ce14b8b732c2bcf883c148480af0f8.js.gz
+```
+
+```
+vi log/production.log
+
+I, [2020-06-16T12:06:12.431227 #18246]  INFO -- : [9636adac-322f-4799-8420-754db8d19277] Started GET "/tweets" for 147.192.28.204 at 2020-06-16 12:06:12 +0000
+I, [2020-06-16T12:06:12.433103 #18246]  INFO -- : [9636adac-322f-4799-8420-754db8d19277] Processing by TweetsController#index as HTML
+I, [2020-06-16T12:06:12.461746 #18246]  INFO -- : [9636adac-322f-4799-8420-754db8d19277]   Rendering tweets/index.html.erb within layouts/application
+D, [2020-06-16T12:06:12.466152 #18246] DEBUG -- : [9636adac-322f-4799-8420-754db8d19277]   ^[[1m^[[36mTweet Load (0.2ms)^[[0m  ^[[1m^[[34mSELECT "tweets".* FROM "tweets"^[[0m
+I, [2020-06-16T12:06:12.468809 #18246]  INFO -- : [9636adac-322f-4799-8420-754db8d19277]   Rendered tweets/index.html.erb within layouts/application (6.9ms)
+I, [2020-06-16T12:06:12.470463 #18246]  INFO -- : [9636adac-322f-4799-8420-754db8d19277] Completed 200 OK in 37ms (Views: 10.4ms | ActiveRecord: 1.1ms)
+```
