@@ -1,11 +1,13 @@
-## Rails6でCapistranoを使う
+# Rails6でCapistranoを使う
 
-### `deploy:assets:precompile`でエラーが表示される。でもエラー文がヒントにならない展開
+`deploy:assets:precompile`でエラーが表示される。でもエラー文がヒントにならない展開
 　
 
-### 以下、解決方法
+## Rails6でデプロイするなら、yarnのインストールを忘れないように
 
+以下、解決方法。<br>
 簡単にまとめるとコレ
+
 - capistranoでyarnを使えるようにしてなかった<br>
 →gem 'capistrano-yarn'を入れる & Capfileにrequire 'capistrano/yarn'を追加
 - EC2にyarnがインストールされてないから落ちる<br>
@@ -344,3 +346,331 @@ $ BRANCH=develop be cap production deploy
 ```
 
 deploy:assets:precompile通った！！
+
+
+## `Mysql2::Error::ConnectionError: Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)`のエラー
+
+Mysql2::Error::ConnectionError: Can’t connect to local MySQL server through socket ‘/tmp/mysql.sock’ というエラー
+
+ローカルのdatabase.ymlの設定
+```
+production:
+  <<: *default
+  database: zero_calorie_production
+  adapter: mysql2
+  encoding: utf8mb4
+  charset: utf8mb4
+  collation: utf8mb4_general_ci
+  username: <%= Rails.application.credentials.dig(:database, :username) %>
+  password: <%= Rails.application.credentials.dig(:database, :password) %>
+  host: <%= Rails.application.credentials.dig(:database, :host) %>
+  pool: 5
+  timeout: 5000
+  socket: /tmp/mysql.sock
+```
+
+EC2のsocketのパスに合わせる？
+```
+~/workspace/app/zero_calorie
+$ mysql_config --socket 
+/tmp/mysql.sock
+```
+
+```
+[ryota@ip-10-0-11-228 20200926023311]$ mysql_config --socket
+/var/lib/mysql/mysql.sock
+```
+
+database.ymlの記述を変える
+
+```
+production:
+  <<: *default
+
+socket: /var/lib/mysql/mysql.sock
+```
+
+つながらない
+```
+Mysql2::Error::ConnectionError: Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock' (13)
+```
+
+EC2にsshで入って、mysqlつなげられるかテストしてみる。
+
+EC2にて、`-h`>オプションでhostを指定してMySQLにログインできるか確認する。<br>
+接続はできているみたい。
+```
+[ryota@ip-10-0-11-228 20200926023311]$ mysql -u ryota -p -h zerorie-database-1.c24h1oi6hhez.ap-northeast-1.rds.amazonaws.com
+Enter password:
+
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MySQL connection id is 1116
+Server version: 5.7.22 Source distribution
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MySQL [(none)]>
+```
+hostをcredentials使わずに直書きしてみたら、エラー内容変わった。
+```
+production:
+  <<: *default
+  database: zero_calorie_production
+  username: <%= Rails.application.credentials.dig(:database, :username) %>
+  password: <%= Rails.application.credentials.dig(:database, :password) %>
+  host: zerorie-database-1.c24h1oi6hhez.ap-northeast-1.rds.amazonaws.com
+  pool: 5
+  timeout: 5000
+  socket: /var/lib/mysql/mysql.sock
+```
+
+capコマンドのdb:create時のエラー<br>
+パスワードなしでログインしようとして拒否されてる？
+```
+Mysql2::Error::ConnectionError: Access denied for user 'ryota'@'10.0.11.228' (using password: NO)
+```
+
+credentialsの問題っぽい！<br>
+production環境用にcredentialsを用意してないから、 `using password: NO`になってそう。<br>
+試しに`database.yml`にpasswordを直書き(pushしてない)したら、最後まで完了した。<br>
+そしてブラウザでEC2のIPアドレスを入力すると、Railsのエラー画面が表示された。<br>
+
+
+```
+00:28 deploy:assets:precompile
+      01 $HOME/.rbenv/bin/rbenv exec bundle exec rake assets:precompile
+01:47 deploy:assets:backup_manifest
+      01 mkdir -p /var/www/zero_calorie/releases/20200926045944/assets_manifest_backup
+    ✔ 01 ryota@54.248.24.26 0.079s
+      02 cp /var/www/zero_calorie/releases/20200926045944/public/assets/.sprockets-manifest-a4309c116324aec431521315715923d2.json /var/www/zero_calorie/releases/20200926045944/assets_manifest_backup
+    ✔ 02 ryota@54.248.24.26 0.079s
+01:48 deploy:db_create
+      01 $HOME/.rbenv/bin/rbenv exec bundle exec rake db:create
+      01 Database 'zero_calorie_production' already exists
+    ✔ 01 ryota@54.248.24.26 2.133s
+01:50 deploy:migrate
+      [deploy:migrate] Run `rake db:migrate`
+01:50 deploy:migrating
+      01 $HOME/.rbenv/bin/rbenv exec bundle exec rake db:migrate
+    ✔ 01 ryota@54.248.24.26 1.529s
+01:52 deploy:symlink:release
+      01 ln -s /var/www/zero_calorie/releases/20200926045944 /var/www/zero_calorie/releases/current
+    ✔ 01 ryota@54.248.24.26 0.078s
+      02 mv /var/www/zero_calorie/releases/current /var/www/zero_calorie
+    ✔ 02 ryota@54.248.24.26 0.077s
+01:52 nginx:restart
+      01 sudo service nginx restart
+      01 Redirecting to /bin/systemctl restart nginx.service
+    ✔ 01 ryota@54.248.24.26 0.303s
+01:52 deploy:cleanup
+      Keeping 5 of 32 deployed releases on 54.248.24.26
+      01 rm -rf /var/www/zero_calorie/releases/20200924155049 /var/www/zero_calorie/releases/20200924160307 /var/www/zero_calorie/releases/20200924160755 /var/www/zero_calorie/releases/20200924161532 /var/ww…
+    ✔ 01 ryota@54.248.24.26 2.236s
+01:55 deploy:log_revision
+      01 echo "Branch develop (at 4282ecefbe61363dccbbb4b2fb27029001abbfba) deployed as release 20200926045944 by funesakisuke" >> /var/www/zero_calorie/revisions.log
+    ✔ 01 ryota@54.248.24.26 0.105s
+01:55 puma:make_dirs
+      01 mkdir /var/www/zero_calorie/shared/tmp/sockets -p
+    ✔ 01 ryota@54.248.24.26 0.083s
+      02 mkdir /var/www/zero_calorie/shared/tmp/pids -p
+    ✔ 02 ryota@54.248.24.26 0.081s
+01:55 puma:start
+      using conf file /var/www/zero_calorie/shared/puma.rb
+      01 $HOME/.rbenv/bin/rbenv exec bundle exec puma -C /var/www/zero_calorie/shared/puma.rb --daemon
+      01 Puma starting in single mode...
+      01 * Version 4.3.5 (ruby 2.7.1-p83), codename: Mysterious Traveller
+      01 * Min threads: 0, max threads: 16
+      01 * Environment: production
+      01 * Daemonizing...
+    ✔ 01 ryota@54.248.24.26 0.701s
+~/workspace/app/zero_calorie
+```
+
+`using password: NO`を解決したい。
+
+EC2上に`etc/environment`に環境変数セットして、その環境変数を`database.yml`に記述したらイケた<br>
+[デプロイ方法④(本番環境の設定/環境変数/Railsの起動) - Qiita](https://qiita.com/maru1124_/items/e83f07fbad5ebe4355d1)を参考にした。
+
+```
+ryota@ip-10-0-11-228 20200926052035]$ sudo vi /etc/environment
+DATABASE_PASSWORD='MySQLのパスワード'
+```
+
+```
+production:
+  <<: *default
+  database: zero_calorie_production
+  username: <%= Rails.application.credentials.dig(:database, :username) %>
+  password: <%= ENV['DATABASE_PASSWORD'] %>
+  host: zerorie-database-1.c24h1oi6hhez.ap-northeast-1.rds.amazonaws.com
+  pool: 5
+  timeout: 5000
+  socket: /var/lib/mysql/mysql.sock
+ryota@ip-10-0-11-228 20200926052035]$ sudo vi /etc/environment
+DATABASE_PASSWORD='MySQLのパスワード'
+production:
+  <<: *default
+  database: zero_calorie_production
+  username: <%= Rails.application.credentials.dig(:database, :username) %>
+  password: <%= ENV['DATABASE_PASSWORD'] %>
+  host: zerorie-database-1.c24h1oi6hhez.ap-northeast-1.rds.amazonaws.com
+  pool: 5
+  timeout: 5000
+  socket: /var/lib/mysql/mysql.sock
+```
+
+しかし、これはとって来れてるのに
+```
+Rails.application.credentials.dig(:database, :username)
+```
+これはとってこれないのおかしくない？
+```
+Rails.application.credentials.dig(:database, :password)
+```
+
+envを設定して、rails consoleするとエラー。<br>
+→なんとpush漏れしてただけ。。。
+
+```
+~/workspace/app/zero_calorie　　$ RAILS_ENV=production rails console
+/Users/funesakisuke/workspace/app/zero_calorie/vendor/bundle/ruby/2.7.0/gems/aws-sigv4-1.2.1/lib/aws-sigv4/signer.rb:613:in `extract_credentials_provider': missing credentials, provide credentials with one of the following options: (Aws::Sigv4::Errors::MissingCredentialsError)
+  - :access_key_id and :secret_access_key
+  - :credentials
+  - :credentials_provider
+```
+
+## pumaのエラー
+
+アクセスすると`502 Bad Gateway
+unix:/var/www/zero_calorie/shared/tmp/sockets/puma.sock failed (13: Permission denied) `
+
+```
+[ryota@ip-10-0-11-228 20200926071422]$ vi log/nginx.error.log
+2020/09/26 07:24:32 [crit] 16201#0: *1 connect() to unix:/var/www/zero_calorie/shared/tmp/sockets/puma.sock failed (13: Permission denied) while connecting to upstream, client: 147.192.28.204, server: zero_calorie, request: "GET / HTTP/1.1", upstream: "http://unix:/var/www/zero_calorie/shared/tmp/sockets/puma.sock:/", host: "54.248.24.26"
+```
+
+### 以下解決
+`/etc/conf.d/nginx.conf`の中のuserを`「root→ryota」`に変えたら画面表示された（デプロイ成功）
+
+```
+[ryota@ip-10-0-11-228 nginx]$ sudo vi nginx.conf 
+
+/etc/conf.d/nginx.conf
+
+# For more information on configuration, see:
+#   * Official English Documentation: http://nginx.org/en/docs/
+#   * Official Russian Documentation: http://nginx.org/ru/docs/
+
+# root → ryotaに変更
+user ryota;
+worker_processes auto;
+error_log /var/log/nginx/error.log;
+pid /run/nginx.pid;
+
+# Load dynamic modules. See /usr/share/nginx/README.dynamic.
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+.
+.
+.
+```
+
+【原因】<br>
+wwwだけ所有者がryotaになってる
+
+```
+[ryota@ip-10-0-11-228 var]$ ls -l
+合計 8
+drwxr-xr-x  2 root  root   19  9月  4 00:49 account
+drwxr-xr-x  2 root  root    6  4月  9  2019 adm
+drwxr-xr-x  6 root  root   63  9月  4 00:49 cache
+drwxr-xr-x  3 root  root   18  9月  4 00:49 db
+drwxr-xr-x  3 root  root   18  9月  4 00:49 empty
+drwxr-xr-x  2 root  root    6  4月  9  2019 games
+drwxr-xr-x  2 root  root    6  4月  9  2019 gopher
+drwxr-xr-x  3 root  root   18  9月  4 00:49 kerberos
+drwxr-xr-x 32 root  root 4096  9月 22 08:23 lib
+drwxr-xr-x  2 root  root    6  4月  9  2019 local
+lrwxrwxrwx  1 root  root   11  9月  4 00:48 lock -> ../run/lock
+drwxr-xr-x  8 root  root 4096  9月 27 03:40 log
+lrwxrwxrwx  1 root  root   10  9月  4 00:48 mail -> spool/mail
+drwxr-xr-x  2 root  root    6  4月  9  2019 nis
+drwxr-xr-x  2 root  root    6  4月  9  2019 opt
+drwxr-xr-x  2 root  root    6  4月  9  2019 preserve
+lrwxrwxrwx  1 root  root    6  9月  4 00:48 run -> ../run
+drwxr-xr-x  9 root  root   97  9月  4 00:49 spool
+drwxrwxrwt  5 root  root  186  9月 27 04:07 tmp
+drwxr-xr-x  3 ryota root   26  9月 24 15:50 www
+drwxr-xr-x  2 root  root    6  4月  9  2019 yp
+```
+
+capistrano使わずにデプロイしようとした時に、`www`を自作して、`sudo chown ryota www`してたのが問題やったのかも。このせいで権限エラーのおそれ。
+```
+[ryota@ip-10-0-11-228 var]$ sudo mkdir www
+[ryota@ip-10-0-11-228 var]$ sudo chown ryota www
+```
+
+capistranoの中では、root権限で(?)mkdirしてくれる<br>
+→sudo chownはしてない
+
+```
+(config/deploy.rb)
+
+namespace :deploy do
+  desc 'upload important files'
+  task :upload do
+    on roles(:app) do
+      # capistranoがwwwディレクトリも作成してくれる(root)
+      sudo :mkdir, '-p', '/var/www/zero_calorie/shared/config'
+      sudo %(chown -R #{fetch(:user)}.#{fetch(:user)} /var/www/#{fetch(:application)})
+      sudo :mkdir, '-p', '/etc/nginx/sites-enabled'
+      sudo :mkdir, '-p', '/etc/nginx/sites-available'
+
+      upload!('config/database.yml', '/var/www/zero_calorie/shared/config/database.yml')
+      upload!('config/master.key', '/var/www/zero_calorie/shared/config/master.key')
+    end
+  end
+```
+
+>/etc/conf.d/nginx.confの中のuserを「root→ryota」に変えたら画面表示された
+
+結局コレは`sudo chown root www`して、userをrootに戻した
+
+### EC2でVision APIを叩く
+ローカルではapp/gcp_key.jsonを読みたいけど、EC2上ではapp/shared/gcp_key.jsonを読みたい<br>
+毎回修正するのはめんどすぎるし、credentialsは使えんかったはず。<br>
+環境変数でパス読み込んどくか。capコマンド内で、EC2でのsource ~/.zshrcの実行できるんかね。
+
+画像検索時
+`The keyfile '/var/www/zero_calorie/releases/20200927075347/gcp_key.json' is not a valid file.`
+
+該当コード
+```
+Google::Cloud::Vision.configure { |vision| vision.credentials = Rails.root.join('gcp_key.json').to_s }
+```
+
+APIキーである`gcp_key.json`はEC2の`/var/www/zero_calorie/shared/`配下に設置してるから、違うパスを読み込もうとしてる
+```
+[ryota@ip-10-0-11-228 20200927075347]$ RAILS_ENV=production bundle exec rails console
+
+irb(main):001:0> Rails.root.join('../../shared/gcp_key.json').to_s
+=> "/var/www/zero_calorie/shared/gcp_key.json"
+irb(main):002:0> Rails.root.join('gcp_key.json').to_s
+=> "/var/www/zero_calorie/releases/20200927075347/gcp_key.json"
+```
+
+EC2上でコード書き換えると動く
+```
+[ryota@ip-10-0-11-228 20200927075347]$ vi app/models/meal_picture.rb
+
+
+Google::Cloud::Vision.configure { |vision| vision.credentials = Rails.root.join('../../shared/gcp_key.json').to_s }
+```
+
